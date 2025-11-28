@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'admin'],
+        enum: ['user', 'admin', 'superadmin'],
         default: 'user'
     },
     otp: {
@@ -31,7 +31,10 @@ const userSchema = new mongoose.Schema({
     isVerified: {
         type: Boolean,
         default: false
-    }
+    },
+    profilePicture: {
+        type: String
+    },
 }, {
     timestamps: true
 });

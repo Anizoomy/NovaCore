@@ -12,7 +12,7 @@ const generateToken = (id) => {
 
 exports.register = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, superAdminKey } = req.body;
 
         // check if user already exist
         const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -29,10 +29,16 @@ exports.register = async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
 
+        // determine role: default 'user', allow 'superadmin' only when secret key matches
+        const role = (superAdminKey && process.env.SUPER_ADMIN_KEY && superAdminKey === process.env.SUPER_ADMIN_KEY)
+            ? 'superadmin'
+            : 'user';
+
         const user = new User({
             name,
             email,
             password: hashPassword,
+            role,
             otp: otp,
             otpExpiry: Date.now() + 10 * 60 * 1000 // 10 minutes from now
         })
@@ -53,7 +59,7 @@ exports.register = async (req, res) => {
         await sendMail(details);
 
         res.status(201).json({
-            message: 'User registered successfully',
+            message: 'User registered successfully', 
             // data: user,
             user: {
                 id: user._id,
@@ -193,3 +199,39 @@ exports.logIn = async (req, res) => {
         });
     }
 };
+
+// exports.getProfile = async (req, res) => {
+//     res.json(req.user);
+// };
+
+// exports.updateProfile = async (req, res) => {
+//     try {
+//         const {name} = req.body;
+
+//         const user = await User.findById(req.user._id);
+
+//         if (!user) {
+//             return res.status(404).json({
+//                 message: 'User not found'
+//             });
+//         }
+
+//         req.user.name = name || req.user.name;
+
+//         if (req.file) {
+//             req.user.profilePicture = req.file.filename;
+//         }
+
+//         await req.user.save();
+
+//         res.json({
+//             message: 'Profile updated',
+//             user: req.user
+//         })
+//     } catch (error) {
+//         res.status(500).json({
+//             message: 'Server error',
+//             error: error.message
+//         });
+//     }
+// };
