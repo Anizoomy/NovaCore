@@ -81,7 +81,6 @@ exports.verifyOtp = async (req, res) => {
     try {
         const { email, otp } = req.body;
 
-        // basic input validation
         if (!email || !otp) {
             return res.status(400).json({ message: 'Email and OTP are required' });
         }

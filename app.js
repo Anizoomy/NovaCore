@@ -3,6 +3,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const authRouter = require('./routes/userRouter');
 const taskRouter = require('./routes/taskRouter');
+const walletRouter = require('./routes/walletRouter');
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(morgan('dev'));
 
 app.use('/api/v1', authRouter);
 app.use('/api/v1', taskRouter);
+app.use('/api/v1', walletRouter)
 
 // sample route
 app.get('/', (req, res) => {
