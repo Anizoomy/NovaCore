@@ -17,7 +17,8 @@ const paymentSchema = new mongoose.Schema({
     },
     event: {
         type: String,
-        enum: ['initialize', 'webhook', 'verified']
+        enum: ['initialize', 'webhook', 'verified', 'charge.success', 'charge.failed', 'charge.pending', 'charge.initialize']
+
     },
     status: {
         type: String,

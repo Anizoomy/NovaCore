@@ -19,6 +19,7 @@ exports.fundWalletInit = async (userId, user, amount) => {
         const init = await initializePayment(user, amount);
 
         if (!init || !init.reference || !init.link) {
+            console.log('Invalid initiallize payment response:', init);
             throw new Error('No valid response')
         }
 
@@ -27,11 +28,16 @@ exports.fundWalletInit = async (userId, user, amount) => {
             reference: init.reference,
             user: userId,
             amount,
-            event: 'initialize',
+            event: 'charge.initialize',
             status: 'pending'
         });
 
-        return { reference: init.reference, paymentLink: init.link };
+
+        return {
+            message: 'Payment Initialized',
+            reference: init.reference,
+            paymentLink: init.link
+        };
 
     } catch (err) {
         console.error('Error in fundWalletInit:', err.response?.data || err.message);
