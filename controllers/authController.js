@@ -59,7 +59,7 @@ exports.register = async (req, res) => {
         await sendMail(details);
 
         res.status(201).json({
-            message: 'User registered successfully', 
+            message: 'User registered successfully',
             // data: user,
             user: {
                 id: user._id,

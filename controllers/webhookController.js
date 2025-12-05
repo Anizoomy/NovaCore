@@ -21,19 +21,19 @@ exports.webhook = async (req, res) => {
         // Signature Verification
         const signature = req.headers['x-korapay-signature'];
 
-        if(!signature) {
+        if (!signature) {
             console.log('Missing signature header');
-            return res.status(400).json({message: 'Signature missing'});
+            return res.status(400).json({ message: 'Signature missing' });
         }
 
         const generatedHash = crypto
-        .createHmac('SHA512', SECRET)
-        .update(rawBody)
-        .digest('hex');
+            .createHmac('SHA512', SECRET)
+            .update(rawBody)
+            .digest('hex');
 
-        if(generatedHash !== signature) {
+        if (generatedHash !== signature) {
             console.log('Invalid signature');
-            return res.status(401).json({message: 'Invalid signature'});
+            return res.status(401).json({ message: 'Invalid signature' });
         }
 
         // save webhook event for logs
@@ -48,14 +48,14 @@ exports.webhook = async (req, res) => {
 
         // Handle charge success
 
-        if(payload.event === 'charge.success') {
+        if (payload.event === 'charge.success') {
 
             // verify charge with korapay
             const verifyUrl = `https://api.korapay.com/merchant/api/v1/charges/${reference}`;
 
             let verify;
 
-            try{
+            try {
                 verify = await axios.get(verifyUrl, {
                     headers: {
                         Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}`
@@ -68,7 +68,7 @@ exports.webhook = async (req, res) => {
 
             const charge = verify.data?.data;
 
-            if(!charge || charge.status !== 'success') {
+            if (!charge || charge.status !== 'success') {
                 console.log('Charge not verified');
                 return res.sendStatus(200);
             }
@@ -77,15 +77,15 @@ exports.webhook = async (req, res) => {
             const userId = metadata.userId;
             const email = metadata.email;
 
-            if(!userId) {
+            if (!userId) {
                 console.log('No userId found in metadata');
                 return res.sendStatus(200);
             }
 
             // Credit wallet
-            const wallet = await Wallet.findOne({userId});
+            const wallet = await Wallet.findOne({ userId });
 
-            if(!wallet) {
+            if (!wallet) {
                 console.error('Wallet not found for user:', userId);
                 res.sendStatus(200);
             }
@@ -106,7 +106,7 @@ exports.webhook = async (req, res) => {
             });
 
             // send notification email
-            if(email) {
+            if (email) {
                 await sendDepositEmail(email, amount);
             }
 
@@ -114,11 +114,11 @@ exports.webhook = async (req, res) => {
 
         }
 
-        return res.status(200).json({message: 'Webhook processed'});
+        return res.status(200).json({ message: 'Webhook processed' });
 
-} catch (error) {
-    console.error('Webhook error:', error.message);
-    res.status(500).json({message: 'Webhook processing failed'});
-}
+    } catch (error) {
+        console.error('Webhook error:', error.message);
+        res.status(500).json({ message: 'Webhook processing failed' });
+    }
 
 };

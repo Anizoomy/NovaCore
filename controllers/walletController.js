@@ -2,7 +2,7 @@ const wallet = require('../service/wallet');
 
 exports.fundWalletInit = async (req, res) => {
     try {
-        const {amount} = req.body;
+        const { amount } = req.body;
 
         const result = await wallet.fundWalletInit(
             req.user._id,
