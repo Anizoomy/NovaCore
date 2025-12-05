@@ -27,7 +27,7 @@ exports.webhook = async (req, res) => {
         }
 
         const generatedHash = crypto
-            .createHmac('SHA512', SECRET)
+            .createHmac('SHA256', SECRET)
             .update(rawBody)
             .digest('hex');
 
@@ -36,10 +36,10 @@ exports.webhook = async (req, res) => {
             return res.status(401).json({ message: 'Invalid signature' });
         }
 
-        // save webhook event for logs
         const reference = payload?.data.reference;
         const metadata = payload?.data.metadata || {};
-
+        
+        // save webhook event for logs
         await Payment.create({
             reference,
             event: payload.event,
@@ -83,7 +83,7 @@ exports.webhook = async (req, res) => {
             }
 
             // Credit wallet
-            const wallet = await Wallet.findOne({ userId });
+            const wallet = await Wallet.findOne({ user: userId });
 
             if (!wallet) {
                 console.error('Wallet not found for user:', userId);
