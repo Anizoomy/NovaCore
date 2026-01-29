@@ -1,4 +1,5 @@
 const User = require('../models/user');
+const Wallet = require('../models/walletModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { sendMail } = require('../middleware/email');
