@@ -7,17 +7,15 @@ exports.korapayWebhook = async (req, res) => {
     try {
         // verify signature security
         const signature = req.headers['x-korapay-signature'];
+        const dataToHash = req.rawBody || JSON.stringify(req.body);
         const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
-            .update(req.rawBody).digest('hex');
+            .update(dataToHash).digest('hex');
 
             console.log('Header Signature:', signature);
             console.log('Calculated Hash:', hash);
 
         if (hash !== signature) {
             console.error('Invalid Korapay webhook signature');
-
-            console.log('Header Signature:', signature);
-            console.log('Calculated Hash:', hash);
             return res.status(401).json({message: 'Unauthorized'});
         }
 

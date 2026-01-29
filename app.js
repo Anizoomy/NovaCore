@@ -12,7 +12,7 @@ const webhookRouter = require('./routes/webhookRouter');
 const app = express();
 app.use(express.json({
     verify: (req, res, buf) => {
-        req.rawBody = buf;
+        req.rawBody = buf.toString();
     }
 }));
 app.use(cors());
