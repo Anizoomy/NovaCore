@@ -7,20 +7,21 @@ exports.korapayWebhook = async (req, res) => {
     try {
         // verify signature security
         const signature = req.headers['x-korapay-signature'];
-        const hash = crypto.createHmac('sha512', process.env.KORAPAY_SECRET_KEY)
+        const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
             .update(JSON.stringify(req.body)).digest('hex');
 
             console.log('Header Signature:', signature);
             console.log('Calculated Hash:', hash);
 
         if (hash !== signature) {
+            console.error('Invalid Korapay webhook signature');
             return res.status(401).json({message: 'Unauthorized'});
         }
 
         const { event, data } = req.body;
 
         // Handle success charge
-        if (event == 'charge.success') {
+        if (event === 'charge.success' && data.status === 'success') {
             const reference = data.reference;
 
             // find the pending transaction
