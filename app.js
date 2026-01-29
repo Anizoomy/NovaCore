@@ -1,6 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./swagger");
 const authRouter = require('./routes/userRouter');
 const taskRouter = require('./routes/taskRouter');
 const walletRouter = require('./routes/walletRouter');
@@ -12,6 +14,7 @@ app.use(express.json());
 app.use(cors());
 app.use(morgan('dev'));
 
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', authRouter);
 app.use('/api/v1', taskRouter);
 app.use('/api/v1', walletRouter);
