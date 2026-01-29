@@ -41,9 +41,14 @@ exports.register = async (req, res) => {
             role,
             otp: otp,
             otpExpiry: Date.now() + 10 * 60 * 1000 // 10 minutes from now
-        })
+        });
 
         await user.save();
+        await Wallet.create({
+            user: user._id,
+            balance: 0
+        });
+        
         const firstName = (user?.name || "").trim().split(" ")[0];
 
         const subject = `Hello ${firstName}, kindly verify your email`;
