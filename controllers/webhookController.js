@@ -3,6 +3,7 @@ const Transaction = require('../models/transactionModel');
 const Wallet = require('../models/walletModel');
 
 exports.korapayWebhook = async (req, res) => {
+    console.log('Korapay Webhook received:', req.body);
     try {
         // verify signature security
         const signature = req.headers['x-korapay-signature'];
