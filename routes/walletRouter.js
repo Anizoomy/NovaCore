@@ -12,7 +12,7 @@ const { secure } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
- * /wallet/fund:
+ * /fund:
  *   post:
  *     summary: Initialize wallet funding
  *     tags: [Wallet]

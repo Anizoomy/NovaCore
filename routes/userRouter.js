@@ -12,7 +12,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /auth/register:
+ * /register:
  *   post:
  *     summary: Register a new user
  *     tags: [Auth]
@@ -46,7 +46,7 @@ router.post('/register', register);
 
 /**
  * @swagger
- * /auth/verify-otp:
+ * /verify-otp:
  *   post:
  *     summary: Verify OTP
  *     tags: [Auth]
@@ -76,7 +76,7 @@ router.post('/verify-otp', verifyOtp);
 
 /**
  * @swagger
- * /auth/resend-otp:
+ * /resend-otp:
  *   post:
  *     summary: Resend OTP
  *     tags: [Auth]
@@ -100,7 +100,34 @@ router.post('/verify-otp', verifyOtp);
  */
 router.post('/resend-otp', resendOtp);
 
-
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: johndoe@gmail.com
+ *               password:
+ *                 type: string
+ *                 example: Password123
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ */
 router.post('/login', logIn);
 
-module.exports = router;
+module.exports = router; 
