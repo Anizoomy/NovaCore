@@ -13,7 +13,7 @@ const swaggerDefinition = {
       description: "Local development server",
     },
     {
-      url: "https://novacore-4tk7.onrender.com",
+      url: "https://novacore-4tk7.onrender.com/api/v1",
       description: "Production server",
     },
   ],
@@ -30,7 +30,7 @@ const swaggerDefinition = {
 
 const options = {
   swaggerDefinition,
-  apis: ["./routes/*.js"], // auto-read route docs
+  apis: ["./routes/**/*.js"], // auto-read route docs
 };
 
 const swaggerSpec = swaggerJSDoc(options);
