@@ -10,8 +10,11 @@ exports.korapayWebhook = async (req, res) => {
         const hash = crypto.createHmac('sha512', process.env.KORAPAY_SECRET_KEY)
             .update(JSON.stringify(req.body)).digest('hex');
 
+            console.log('Header Signature:', signature);
+            console.log('Calculated Hash:', hash);
+
         if (hash !== signature) {
-            return res.status(401).send('Unauthorized');
+            return res.status(401).json({message: 'Unauthorized'});
         }
 
         const { event, data } = req.body;
