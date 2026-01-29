@@ -4,6 +4,7 @@ const cors = require('cors');
 const authRouter = require('./routes/userRouter');
 const taskRouter = require('./routes/taskRouter');
 const walletRouter = require('./routes/walletRouter');
+const webhookRouter = require('./routes/webhookRouter');
 
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(morgan('dev'));
 app.use('/api/v1', authRouter);
 app.use('/api/v1', taskRouter);
 app.use('/api/v1', walletRouter);
+app.use('/api/v1', webhookRouter);
 
 
 

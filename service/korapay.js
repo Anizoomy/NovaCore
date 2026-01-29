@@ -1,9 +1,14 @@
 require('dotenv').config();
 const axios = require('axios');
 const generateRef = require('../utils/generateRef');
+const Transaction = require('../models/transactionModel');
+const Wallet = require('../models/walletModel');
 
 exports.initializePayment = async (user, amount) => {
     const reference = generateRef('KRPAY');
+
+    // to find the user's wallet to get the ID
+    const userWallet = await Wallet.findOne({ user: user._id });
 
     const payload = {
         amount: amount,
@@ -27,6 +32,17 @@ exports.initializePayment = async (user, amount) => {
                 }
             }
         );
+
+        // Save pending transaction to DB
+        await Transaction.create({
+            user: user._id,
+            wallet: userWallet._id,
+            type: 'credit',
+            category: 'deposit',
+            reference: reference,
+            status: 'pending',
+            description: 'Wallet Funding'
+        });
 
         return {
             reference,
