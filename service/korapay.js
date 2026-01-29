@@ -5,6 +5,11 @@ const Transaction = require('../models/transactionModel');
 const Wallet = require('../models/walletModel');
 
 exports.initializePayment = async (user, amount) => {
+
+    if (!amount) {
+        throw new Error("Amount is required to initialize payment");
+    }
+
     const reference = generateRef('KRPAY');
 
     // to find the user's wallet to get the ID
@@ -39,6 +44,7 @@ exports.initializePayment = async (user, amount) => {
             wallet: userWallet._id,
             type: 'credit',
             category: 'deposit',
+            amount: amount,
             reference: reference,
             status: 'pending',
             description: 'Wallet Funding'
