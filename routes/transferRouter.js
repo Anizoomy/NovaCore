@@ -12,24 +12,43 @@ const { secure } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
- * /api/v1/banks:
+ * /get-banks:
  *   get:
+ *     tags:
+ *       - Wallet
  *     summary: Get list of supported banks
- *     tags: [Transfer]
+ *     description: Fetches all supported banks for transfers
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of banks fetched
+ *         description: Banks retrieved successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               banks:
+ *                 - name: Access Bank
+ *                   code: "044"
+ *                 - name: GTBank
+ *                   code: "058"
+ *                 - name: First Bank
+ *                   code: "011"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 router.get('/banks', secure, getBanks);
 
 /**
  * @swagger
- * /api/v1/verify-account:
+ * /verify-account:
  *   post:
- *     summary: Verify account number
- *     tags: [Transfer]
+ *     tags:
+ *       - Wallet
+ *     summary: Verify recipient bank account
+ *     description: Verifies a bank account number and bank code before initiating a transfer
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -38,6 +57,9 @@ router.get('/banks', secure, getBanks);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - accountNumber
+ *               - bankCode
  *             properties:
  *               accountNumber:
  *                 type: string
@@ -47,16 +69,29 @@ router.get('/banks', secure, getBanks);
  *                 example: "058"
  *     responses:
  *       200:
- *         description: Account successfully resolved
+ *         description: Account verified successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               accountName: JOHN DOE
+ *               accountNumber: "0123456789"
+ *               bankName: GTBank
+ *       400:
+ *         description: Invalid account details
+ *       401:
+ *         description: Unauthorized
  */
 router.post('/verify-account', secure, verifyAccount);
 
 /**
  * @swagger
-* /api/v1/send-money:
+ * /send-money:
  *   post:
- *     summary: Initiate a payout/transfer
- *     tags: [Transfer]
+ *     tags:
+ *       - Wallet
+ *     summary: Send money to a bank account
+ *     description: Initiates a bank transfer after successful account verification
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -65,25 +100,36 @@ router.post('/verify-account', secure, verifyAccount);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - amount
+ *               - accountNumber
+ *               - bankCode
  *             properties:
  *               amount:
  *                 type: number
- *                 example: 500
- *               bankCode:
- *                 type: string
- *                 example: "058"
+ *                 example: 5000
  *               accountNumber:
  *                 type: string
  *                 example: "0123456789"
- *               accountName:
+ *               bankCode:
  *                 type: string
- *                 example: "KORAPAY TEST USER"
+ *                 example: "058"
  *               narration:
  *                 type: string
- *                 example: "Payment for dinner"
+ *                 example: Payment for services
  *     responses:
  *       200:
- *         description: Transfer initiated
+ *         description: Transfer initiated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               reference: TRX_123456789
+ *               amount: 5000
+ *       400:
+ *         description: Transfer failed
+ *       401:
+ *         description: Unauthorized
  */
 router.post('/send-money', secure, initiateTransfer);
 
