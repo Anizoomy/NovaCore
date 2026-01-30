@@ -13,6 +13,7 @@ exports.getBanks = async (req, res) => {
         });
         res.status(200).json(response.data.data);
     } catch (error) {
+        console.log('korapay error:', error.response?.data || error.message);
         res.status(500).json({ message: "Could not fetch banks" });
     }
 };
