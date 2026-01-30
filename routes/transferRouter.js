@@ -3,12 +3,7 @@ const router = express.Router();
 const { getBanks, verifyAccount, initiateTransfer } = require('../controllers/transferController');
 const { secure } = require('../middleware/authMiddleware');
 
-/**
- * @swagger
- * tags:
- *   name: Transfer
- *   description: Transfer operations
- */
+
 
 /**
  * @swagger
@@ -16,24 +11,32 @@ const { secure } = require('../middleware/authMiddleware');
  *   get:
  *     tags:
  *       - Transfer
- *     summary: Get list of supported banks
- *     description: Fetches all supported banks for transfers
+ *     summary: Get supported banks
+ *     description: Retrieve the list of banks supported for transfer operations
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Banks retrieved successfully
+ *         description: Banks fetched successfully
  *         content:
  *           application/json:
- *             example:
- *               status: success
- *               banks:
- *                 - name: Access Bank
- *                   code: "044"
- *                 - name: GTBank
- *                   code: "058"
- *                 - name: First Bank
- *                   code: "011"
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 banks:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         example: GTBank
+ *                       code:
+ *                         type: string
+ *                         example: "058"
  *       401:
  *         description: Unauthorized
  *       500:
@@ -47,8 +50,8 @@ router.get('/banks', secure, getBanks);
  *   post:
  *     tags:
  *       - Transfer
- *     summary: Verify recipient bank account
- *     description: Verifies a bank account number and bank code before initiating a transfer
+ *     summary: Verify bank account details
+ *     description: Validates recipient bank account details before initiating a transfer operation
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -72,11 +75,21 @@ router.get('/banks', secure, getBanks);
  *         description: Account verified successfully
  *         content:
  *           application/json:
- *             example:
- *               status: success
- *               accountName: JOHN DOE
- *               accountNumber: "0123456789"
- *               bankName: GTBank
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 accountName:
+ *                   type: string
+ *                   example: JOHN DOE
+ *                 accountNumber:
+ *                   type: string
+ *                   example: "0123456789"
+ *                 bankName:
+ *                   type: string
+ *                   example: GTBank
  *       400:
  *         description: Invalid account details
  *       401:
@@ -90,8 +103,8 @@ router.post('/verify-account', secure, verifyAccount);
  *   post:
  *     tags:
  *       - Transfer
- *     summary: Send money to a bank account
- *     description: Initiates a bank transfer after successful account verification
+ *     summary: Send money to bank account
+ *     description: Initiates a transfer operation to a verified bank account
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -116,16 +129,24 @@ router.post('/verify-account', secure, verifyAccount);
  *                 example: "058"
  *               narration:
  *                 type: string
- *                 example: Payment for services
+ *                 example: Transfer for services
  *     responses:
  *       200:
  *         description: Transfer initiated successfully
  *         content:
  *           application/json:
- *             example:
- *               status: success
- *               reference: TRX_123456789
- *               amount: 5000
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 reference:
+ *                   type: string
+ *                   example: TRX_123456789
+ *                 amount:
+ *                   type: number
+ *                   example: 5000
  *       400:
  *         description: Transfer failed
  *       401:

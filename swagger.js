@@ -3,7 +3,7 @@ const swaggerJSDoc = require("swagger-jsdoc");
 const swaggerDefinition = {
   openapi: "3.0.0",
   info: {
-    title: "Backend API Documentation",
+    title: "NOVACORE API Documentation",
     version: "1.0.0",
     description: "NOVA APIs",
   },
@@ -19,7 +19,7 @@ const swaggerDefinition = {
   ],
   components: {
     securitySchemes: {
-      BearerAuth: {
+      bearerAuth: {
         type: "http",
         scheme: "bearer",
         bearerFormat: "JWT",
@@ -30,7 +30,7 @@ const swaggerDefinition = {
 
 const options = {
   swaggerDefinition,
-  apis: ["./routes/**/*.js"], // auto-read route docs
+  apis: ["./routes/**/*.js"],
 };
 
 const swaggerSpec = swaggerJSDoc(options);
