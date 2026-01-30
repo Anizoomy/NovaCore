@@ -12,10 +12,10 @@ const { secure } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
- * /get-banks:
+ * /banks:
  *   get:
  *     tags:
- *       - Wallet
+ *       - Transfer
  *     summary: Get list of supported banks
  *     description: Fetches all supported banks for transfers
  *     security:
@@ -46,7 +46,7 @@ router.get('/banks', secure, getBanks);
  * /verify-account:
  *   post:
  *     tags:
- *       - Wallet
+ *       - Transfer
  *     summary: Verify recipient bank account
  *     description: Verifies a bank account number and bank code before initiating a transfer
  *     security:
@@ -89,7 +89,7 @@ router.post('/verify-account', secure, verifyAccount);
  * /send-money:
  *   post:
  *     tags:
- *       - Wallet
+ *       - Transfer
  *     summary: Send money to a bank account
  *     description: Initiates a bank transfer after successful account verification
  *     security:
