@@ -26,7 +26,7 @@ router.get('/banks', secure, getBanks);
 
 /**
  * @swagger
- * /api/v1/resolve-account:
+ * /api/v1/verify-account:
  *   post:
  *     summary: Verify account number
  *     tags: [Transfer]
