@@ -24,7 +24,7 @@ app.use('/api/v1', authRouter);
 app.use('/api/v1', taskRouter);
 app.use('/api/v1', walletRouter);
 app.use('/api/v1', webhookRouter);
-app.use('api/v1', transferRouter);
+app.use('/api/v1', transferRouter);
 
 
 
