@@ -21,6 +21,11 @@ const transactionSchema = new mongoose.Schema({
         enum: ['transfer', 'deposit', 'withdrawal'],
         required: true
     },
+    bankDetails: {
+        bankName: String,
+        accountNumber: String,
+        accountName: String
+    },
     amount: {
         type: Number,
         required: true

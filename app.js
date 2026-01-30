@@ -7,6 +7,7 @@ const authRouter = require('./routes/userRouter');
 const taskRouter = require('./routes/taskRouter');
 const walletRouter = require('./routes/walletRouter');
 const webhookRouter = require('./routes/webhookRouter');
+const transferRouter = require('./routes/transferRouter');
 
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/v1', authRouter);
 app.use('/api/v1', taskRouter);
 app.use('/api/v1', walletRouter);
 app.use('/api/v1', webhookRouter);
+app.use('api/v1', transferRouter);
 
 
 

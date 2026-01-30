@@ -11,12 +11,12 @@ exports.korapayWebhook = async (req, res) => {
         const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
             .update(dataToHash).digest('hex');
 
-            console.log('Header Signature:', signature);
-            console.log('Calculated Hash:', hash);
+        // console.log('Header Signature:', signature);
+        // console.log('Calculated Hash:', hash);
 
         if (hash !== signature) {
             console.error('Invalid Korapay webhook signature');
-            return res.status(401).json({message: 'Unauthorized'});
+            return res.status(401).json({ message: 'Unauthorized' });
         }
 
         const { event, data } = req.body;
@@ -39,6 +39,28 @@ exports.korapayWebhook = async (req, res) => {
 
                 console.log(`Wallet credited for ref: ${reference}`);
             }
+        }
+
+        // Handle failed charge
+        if (event === 'transfer.failed') {
+            const transaction = await Transaction.findOne({ reference: data.reference });
+
+            // refund only ifif we haven't already reversed
+            if (transaction && transaction.status !== 'reversed') {
+                // mark as reversed
+                transaction.status = 'reversed';
+                transaction.description = `Transfer failed: Money return to wallet`;
+                await transaction.save();
+
+                // put money back into the user wallet
+                await Wallet.findByIdAndUpdate(transaction.wallet, {
+                    $inc: { balance: transaction.amount }
+                });
+
+                console.log(`Transfer failed, wallet refuned for ref: ${data.reference}`)
+
+            }
+
         }
 
         res.status(200).send('Webhook Received');
