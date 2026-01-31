@@ -8,7 +8,7 @@ const KORAPAY_URL = 'https://api.korapay.com/merchant/api/v1';
 // To get List of Banks for the dropdown
 exports.getBanks = async (req, res) => {
     try {
-        const response = await axios.get(`${KORAPAY_URL}/banks`, {
+        const response = await axios.get(`${KORAPAY_URL}/misc/banks`, {
             headers: { Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}` }
         });
         res.status(200).json(response.data.data);
@@ -23,7 +23,7 @@ exports.verifyAccount = async (req, res) => {
     try {
         const { accountNumber, bankCode } = req.body;
         const response = await axios.post(`${KORAPAY_URL}/misc/banks/resolve`, 
-        { account: accountNumber, bank: bankCode },
+        { account: String(accountNumber), bank: String(bankCode) },
         { headers: { Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}` } });
 
         res.status(200).json(response.data.data);
