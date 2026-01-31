@@ -10,7 +10,7 @@ exports.getBanks = async (req, res) => {
     try {
         console.log('Using Key:', process.env.KORAPAY_SECRET_KEY?.substring(0, 10) + '...');
 
-        const response = await axios.get(`${KORAPAY_URL}/misc/banks`, {
+        const response = await axios.get(`${KORAPAY_URL}/banks`, {
             headers: {
                 Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}`,
                 Accept: 'application/json'
@@ -60,7 +60,7 @@ exports.initiateTransfer = async (req, res) => {
         await wallet.save();
 
         // Create the transaction record as 'pending'
-        const transaction = await Transaction.create({
+        await Transaction.create({
             user: userId,
             wallet: wallet._id,
             type: 'debit',
@@ -74,19 +74,29 @@ exports.initiateTransfer = async (req, res) => {
 
 
         // Call Korapay to send the money
-        const response = await axios.post(`${KORAPAY_URL}/transactions/disburse`, {
+        const korapayBody = {
             reference: reference,
             amount: amount,
             currency: 'NGN',
-            bank_code: bankCode,
-            account_number: accountNumber,
+            destination: {
+                type: 'bank_account',
+                bank_account: {
+                    bank: bankCode,
+                    account: accountNumber
+                }
+            },
             customer: {
                 name: req.user.name,
                 email: req.user.email
             },
-            destination_type: 'bank_account'
-        }, {
-            headers: { Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}` }
+            description: narration || `Transfer to ${accountName}`
+        };
+
+        const response = await axios.post(`${KORAPAY_URL}/transactions/disburse`, korapayBody, {
+            headers: { 
+                Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            }
         });
 
         return res.status(200).json({ 
