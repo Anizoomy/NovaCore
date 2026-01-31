@@ -8,7 +8,7 @@ const KORAPAY_URL = 'https://api.korapay.com/merchant/api/v1';
 // To get List of Banks for the dropdown
 exports.getBanks = async (req, res) => {
     try {
-        const response = await axios.get(`${KORAPAY_URL}/charge/pay-with-bank/banks`, {
+        const response = await axios.get(`${KORAPAY_URL}/banks`, {
             headers: { Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}` }
         });
         res.status(200).json(response.data.data);
@@ -23,13 +23,13 @@ exports.verifyAccount = async (req, res) => {
     try {
         const { accountNumber, bankCode } = req.body;
         const response = await axios.post(`${KORAPAY_URL}/misc/banks/resolve`, 
-        { account_number: accountNumber, bank_code: bankCode },
+        { account: accountNumber, bank: bankCode },
         { headers: { Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}` } });
 
         res.status(200).json(response.data.data);
     } catch (error) {
         console.log('korapay error:', error.response?.data || error.message);
-        res.status(400).json({ message: "Could not verify account" });
+        res.status(400).json({ message: "Could not verify account", error: error.response?.data });
     }
 };
 
