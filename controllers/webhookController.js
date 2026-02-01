@@ -7,12 +7,12 @@ exports.korapayWebhook = async (req, res) => {
     try {
         // verify signature security
         const signature = req.headers['x-korapay-signature'];
-        const dataToHash = JSON.stringify(req.body.data);
+        // dataToHash = JSON.stringify(req.body.data);
         const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
-            .update(dataToHash).digest('hex');
+            .update(JSON.stringify(req.body)).digest('hex');
 
-        // console.log('Header Signature:', signature);
-        // console.log('Calculated Hash:', hash);
+        console.log('Header Signature:', signature);
+        console.log('Calculated Hash:', hash);
 
         if (hash !== signature) {
             console.error('Invalid Korapay webhook signature');
@@ -20,7 +20,7 @@ exports.korapayWebhook = async (req, res) => {
         }
 
         const { event, data } = req.body;
-
+console.log('Webhook Event:', event);
         // Handle success charge
         if (event === 'charge.success' && data.status === 'success') {
             const reference = data.reference;
@@ -53,8 +53,10 @@ exports.korapayWebhook = async (req, res) => {
         }
 
         // Handle failed charge
-        if (event === 'transfer.failed') {
-            const transaction = await Transaction.findOne({ reference: data.reference });
+        if (event === 'transfer.failed' || event === 'transfer.reversed') {
+            const transaction = await Transaction.findOne({ reference: data.reference,
+                 status: {$ne: 'reversed'} //dont refund twice
+                 });
 
             // refund only ifif we haven't already reversed
             if (transaction && transaction.status !== 'reversed'&& transaction.type === 'debit') {
