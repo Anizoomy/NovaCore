@@ -41,15 +41,26 @@ exports.korapayWebhook = async (req, res) => {
             }
         }
 
+        // Handle transfer success
+        if (event === 'transfer.success') {
+            const transaction = await Transaction.findOne({ reference: data.reference, status: 'pending' });
+
+            if (transaction) {
+                transaction.status = 'success';
+                await transaction.save();
+                console.log(`Transfer successful for ref: ${data.reference}`);
+            }
+        }
+
         // Handle failed charge
         if (event === 'transfer.failed') {
             const transaction = await Transaction.findOne({ reference: data.reference });
 
             // refund only ifif we haven't already reversed
-            if (transaction && transaction.status !== 'reversed') {
+            if (transaction && transaction.status !== 'reversed'&& transaction.type === 'debit') {
                 // mark as reversed
                 transaction.status = 'reversed';
-                transaction.description = `Transfer failed: Money return to wallet`;
+                transaction.description = `Transfer failed: ${data.detail || 'Money returned to wallet'}`;
                 await transaction.save();
 
                 // put money back into the user wallet
@@ -68,5 +79,5 @@ exports.korapayWebhook = async (req, res) => {
     } catch (error) {
         console.error('Webhook Error:', error);
         res.status(500).send('Internal sever Error');
-    }
+    };
 };

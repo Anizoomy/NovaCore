@@ -86,7 +86,7 @@ exports.initiateTransfer = async (req, res) => {
         await wallet.save();
 
         // Create the transaction record as 'pending'
-         await Transaction.create({
+         const transaction = await Transaction.create({
             user: userId,
             wallet: wallet._id,
             type: 'debit',
@@ -107,8 +107,23 @@ exports.initiateTransfer = async (req, res) => {
             }
         });
 
+            // Update transaction based on Korapay response
+            const koraStatus = response.data.data?.status;
+
+            if (koraStatus === 'success') {
+                transaction.status = 'success';
+            } else if (koraStatus === 'failed') {
+                transaction.status = 'failed';
+                // Refund the wallet immediately
+                wallet.balance += amount;
+                await wallet.save();
+            }
+
+        await transaction.save();
          res.status(200).json({ 
             status: 'success', 
+            message: 'Transfer initiated',
+            transaction_status: transaction.status,
             reference: reference,
             amount: amount,
             korapay_details: response.data.message
