@@ -8,9 +8,9 @@ const KORAPAY_URL = 'https://api.korapay.com/merchant/api/v1';
 // To get List of Banks for the dropdown
 exports.getBanks = async (req, res) => {
     try {
-        console.log('Using Key:', process.env.KORAPAY_SECRET_KEY?.substring(0, 10) + '...');
+        // console.log('Using Key:', process.env.KORAPAY_SECRET_KEY?.substring(0, 10) + '...');
 
-        const response = await axios.get(`${KORAPAY_URL}/banks`, {
+        const response = await axios.get(`${KORAPAY_URL}/misc/banks?currency=NGN`, {
             headers: {
                 Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}`,
                 Accept: 'application/json'
@@ -32,7 +32,14 @@ exports.verifyAccount = async (req, res) => {
         { account: String(accountNumber), bank: String(bankCode) },
         { headers: { Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}`, Accept: 'application/json' } });
 
-        res.status(200).json(response.data.data);
+        const data = response.data.data;
+    
+        res.status(200).json({
+            status: 'success',
+            acountName: data.account_name,
+            accountNumber: data.account_number,
+            bankName: data.bank_name
+        });
     } catch (error) {
         console.log('korapay error:', error.response?.data || error.message);
         res.status(400).json({ message: "Verify account failed", error: error.response?.data || 'Invalid account or bank code' });
@@ -41,7 +48,7 @@ exports.verifyAccount = async (req, res) => {
 
 // Initiate Transfer
 exports.initiateTransfer = async (req, res) => {
-    const { amount, bankCode, bankName, accountNumber, accountName, narration } = req.body;
+    const { amount, bankCode, accountNumber, narration } = req.body;
     const userId = req.user.id; // From auth middleware
 
     try {
@@ -55,42 +62,43 @@ exports.initiateTransfer = async (req, res) => {
 
         const reference = `TRNS_${crypto.randomBytes(6).toString('hex').toUpperCase()}-${Date.now()}`;
         
+        // Call Korapay to send the money
+        const korapayBody = {
+            reference: reference,
+            destination: {
+                type: 'bank_account',
+                amount: amount,
+                currency: 'NGN',
+                bank_account: {
+                    bank: bankCode,
+                    account: accountNumber,
+                },
+                customer: {
+                    name: req.user.name || 'User',
+                    email: req.user.email
+                }
+            },
+            description: narration || `Transfer of ${amount} NGN to ${accountNumber}`
+        };
+
         // Debit the wallet (Prevents double spending)
         wallet.balance -= amount;
         await wallet.save();
 
         // Create the transaction record as 'pending'
-        await Transaction.create({
+         await Transaction.create({
             user: userId,
             wallet: wallet._id,
             type: 'debit',
             category: 'transfer',
             amount,
             reference,
-            description: narration || `Transfer to ${accountName}`,
-            bankDetails: { bankName: bankName, accountNumber: accountNumber, accountName: accountName },
-            status: 'pending',
+            description: narration,
+            bankDetails: { bankName: bankCode, accountNumber:accountNumber },
+            status: 'pending'
         });
 
 
-        // Call Korapay to send the money
-        const korapayBody = {
-            reference: reference,
-            amount: amount,
-            currency: 'NGN',
-            destination: {
-                type: 'bank_account',
-                bank_account: {
-                    bank: bankCode,
-                    account: accountNumber
-                }
-            },
-            customer: {
-                name: req.user.name,
-                email: req.user.email
-            },
-            description: narration || `Transfer to ${accountName}`
-        };
 
         const response = await axios.post(`${KORAPAY_URL}/transactions/disburse`, korapayBody, {
             headers: { 
@@ -99,15 +107,15 @@ exports.initiateTransfer = async (req, res) => {
             }
         });
 
-        return res.status(200).json({ 
-            message: "Transfer is being processed", 
+         res.status(200).json({ 
+            status: 'success', 
             reference: reference,
-            data: response.data.data
+            amount: amount,
+            korapay_details: response.data.message
         });
 
     } catch (error) {
-        console.error("Transfer Error:", error.response?.data || error.message);
-        // If API fails immediately, we should refund the wallet here
-        res.status(500).json({ message: "Transfer failed to initiate" });
+        console.error("Transfer Error:", JSON.stringify(error.response?.data, null, 2));
+        res.status(500).json({ message: "Transfer failed to initiate", error: error.response?.data.message });
     }
 };
