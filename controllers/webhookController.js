@@ -7,9 +7,9 @@ exports.korapayWebhook = async (req, res) => {
     try {
         // verify signature security
         const signature = req.headers['x-korapay-signature'];
-        // dataToHash = JSON.stringify(req.body.data);
+        dataToHash = JSON.stringify(req.body.data);
         const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
-            .update(JSON.stringify(req.body)).digest('hex');
+            .update(dataToHash).digest('hex');
 
         console.log('Header Signature:', signature);
         console.log('Calculated Hash:', hash);
