@@ -4,10 +4,15 @@ const Wallet = require('../models/walletModel');
 
 exports.korapayWebhook = async (req, res) => {
     console.log('Korapay Webhook received:', req.body);
+    console.log('Event Type:', req.body.event);
+    console.log('Reference:', req.body.data?.reference);
+
+    
+
     try {
         // verify signature security
         const signature = req.headers['x-korapay-signature'];
-        dataToHash = JSON.stringify(req.body.data);
+        const dataToHash = JSON.stringify(req.body.data);
         const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
             .update(dataToHash).digest('hex');
 
@@ -22,13 +27,14 @@ exports.korapayWebhook = async (req, res) => {
         const { event, data } = req.body;
 console.log('Webhook Event:', event);
         // Handle success charge
-        if (event === 'charge.success' && data.status === 'success') {
+        if (event === 'charge.success') {
             const reference = data.reference;
+             console.log(`deposit transaction: ${reference}`);
 
             // find the pending transaction
-            const transaction = await Transaction.findOne({ reference, status: 'pending' });
+            const transaction = await Transaction.findOne({ reference: reference });
 
-            if (transaction) {
+            if (transaction && transaction.status === 'pending') {
                 transaction.status = 'success';
                 await transaction.save();
 
@@ -38,14 +44,16 @@ console.log('Webhook Event:', event);
                 });
 
                 console.log(`Wallet credited for ref: ${reference}`);
+            } else {
+                console.log(`⚠️ DEPOSIT SKIP: Transaction not found or already processed. Status: ${transaction?.status}`);
             }
         }
 
         // Handle transfer success
         if (event === 'transfer.success') {
-            const transaction = await Transaction.findOne({ reference: data.reference, status: 'pending' });
+            const transaction = await Transaction.findOne({ reference: data.reference });
 
-            if (transaction) {
+            if (transaction && transaction.status === 'pending') {
                 transaction.status = 'success';
                 await transaction.save();
                 console.log(`Transfer successful for ref: ${data.reference}`);
@@ -79,7 +87,7 @@ console.log('Webhook Event:', event);
         res.status(200).send('Webhook Received');
 
     } catch (error) {
-        console.error('Webhook Error:', error);
+        console.error('Webhook Error:', error.message);
         res.status(500).send('Internal sever Error');
     };
 };
