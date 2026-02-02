@@ -3,91 +3,86 @@ const Transaction = require('../models/transactionModel');
 const Wallet = require('../models/walletModel');
 
 exports.korapayWebhook = async (req, res) => {
-    console.log('Korapay Webhook received:', req.body);
-    console.log('Event Type:', req.body.event);
-    console.log('Reference:', req.body.data?.reference);
-
-    
 
     try {
-        // verify signature security
+        // Verify that this request actually came from Korapay
+        // I use HMAC SHA256 hashing to compare the signature in the header 
+        // with a hash of the raw request body using our Secret Key.
         const signature = req.headers['x-korapay-signature'];
-        const dataToHash = JSON.stringify(req.body.data);
         const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
-            .update(dataToHash).digest('hex');
+            .update(JSON.stringify(req.body)) 
+            .digest('hex');
 
-        console.log('Header Signature:', signature);
-        console.log('Calculated Hash:', hash);
-
+        // If the hashes don't match, someone might be trying to fake a payment
         if (hash !== signature) {
-            console.error('Invalid Korapay webhook signature');
-            return res.status(401).json({ message: 'Unauthorized' });
+            console.error('Signature Mismatch');
+            return res.status(401).json({ message: 'Invalid Signature' });
         }
 
+        // Extract the event type and data from the request body
         const { event, data } = req.body;
-console.log('Webhook Event:', event);
-        // Handle success charge
+        console.log(`Processing Event: ${event} for Ref: ${data.reference}`);
+
+        //HANDLE DEPOSITS (User funding their wallet)
+        // Event 'charge.success' means the user has successfully paid you.
         if (event === 'charge.success') {
-            const reference = data.reference;
-             console.log(`deposit transaction: ${reference}`);
+            // Find the transaction record we created when the user started the payment
+            const transaction = await Transaction.findOne({ reference: data.reference });
 
-            // find the pending transaction
-            const transaction = await Transaction.findOne({ reference: reference });
-
+            // Only proceed if the transaction exists and is currently 'pending'
             if (transaction && transaction.status === 'pending') {
+                // Mark the transaction as complete
                 transaction.status = 'success';
                 await transaction.save();
 
-                // Credit the wallet
+                // Increment (add) the amount to the user's wallet balance
                 await Wallet.findByIdAndUpdate(transaction.wallet, {
                     $inc: { balance: transaction.amount }
                 });
 
-                console.log(`Wallet credited for ref: ${reference}`);
+                console.log(`DEPOSIT CONFIRMED: Wallet credited for ${data.reference}`);
             } else {
-                console.log(`⚠️ DEPOSIT SKIP: Transaction not found or already processed. Status: ${transaction?.status}`);
+                console.log(`DEPOSIT SKIP: Transaction already processed or not found.`);
             }
         }
 
-        // Handle transfer success
+        //HANDLE TRANSFER SUCCESS (Withdrawals/Payouts)
+        // Event 'transfer.success' means the money has reached the recipient's bank account.
         if (event === 'transfer.success') {
             const transaction = await Transaction.findOne({ reference: data.reference });
 
             if (transaction && transaction.status === 'pending') {
+                // Simply mark the transaction as successful
                 transaction.status = 'success';
                 await transaction.save();
-                console.log(`Transfer successful for ref: ${data.reference}`);
+                console.log(`TRANSFER SUCCESS: Record updated for ${data.reference}`);
             }
         }
 
-        // Handle failed charge
+        //HANDLE TRANSFER FAILURES (Refund Logic)
+        // If a transfer fails or is reversed by the bank, we must return the money to the user.
         if (event === 'transfer.failed' || event === 'transfer.reversed') {
-            const transaction = await Transaction.findOne({ reference: data.reference,
-                 status: {$ne: 'reversed'} //dont refund twice
-                 });
+            const transaction = await Transaction.findOne({ reference: data.reference });
 
-            // refund only ifif we haven't already reversed
-            if (transaction && transaction.status !== 'reversed'&& transaction.type === 'debit') {
-                // mark as reversed
+            // Ensure we only refund if the transaction isn't already reversed
+            if (transaction && transaction.status !== 'reversed' && transaction.type === 'debit') {
                 transaction.status = 'reversed';
-                transaction.description = `Transfer failed: ${data.detail || 'Money returned to wallet'}`;
+                transaction.description = `Failed: ${data.detail || 'Bank declined transfer'}`;
                 await transaction.save();
 
-                // put money back into the user wallet
+                // Refund the amount back to the user's wallet balance
                 await Wallet.findByIdAndUpdate(transaction.wallet, {
                     $inc: { balance: transaction.amount }
                 });
 
-                console.log(`Transfer failed, wallet refuned for ref: ${data.reference}`)
-
+                console.log(`REFUND PROCESSED: Money returned for ref: ${data.reference}`);
             }
-
         }
 
-        res.status(200).send('Webhook Received');
+        return res.status(200).send('Webhook Processed Successfully');
 
     } catch (error) {
-        console.error('Webhook Error:', error.message);
-        res.status(500).send('Internal sever Error');
-    };
+        console.error('WEBHOOK ERROR:', error.message);
+        return res.status(500).send('Internal Server Error');
+    }
 };
