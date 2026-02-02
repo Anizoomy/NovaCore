@@ -3,6 +3,7 @@ const Transaction = require('../models/transactionModel');
 const Wallet = require('../models/walletModel');
 
 exports.korapayWebhook = async (req, res) => {
+    console.log('--- KORAPAY WEBHOOK START ---');
 
     try {
         // Verify that this request actually came from Korapay
