@@ -133,96 +133,62 @@ const crypto = require('crypto');
 const Transaction = require('../models/transactionModel');
 const Wallet = require('../models/walletModel');
 
-/**
- * Korapay Webhook Controller
- * Handles Deposits (charge.success) and Payouts (transfer.success/failed)
- */
 exports.korapayWebhook = async (req, res) => {
-    console.log('--- 🔔 KORAPAY WEBHOOK RECEIVED 🔔 ---');
+    console.log('--- 🔔 KORAPAY WEBHOOK DEBUG 🔔 ---');
 
     try {
-        // 1. EXTRACT DATA
         const signature = req.headers['x-korapay-signature'];
         const secretKey = (process.env.KORAPAY_SECRET_KEY || '').trim();
+        const rawPayload = req.rawBody || '';
+
+        // DEBUG LOGS (Safe for console)
+        console.log('1. Key Stats:', {
+            length: secretKey.length,
+            prefix: secretKey.substring(0, 7), // Should be sk_test or sk_live
+            suffix: secretKey.substring(secretKey.length - 4)
+        });
+
+        // Calculate Hash
+        const hash = crypto.createHmac('sha256', secretKey)
+            .update(rawPayload)
+            .digest('hex');
+
+        console.log('2. Signature Comparison:');
+        console.log('Received Header:', signature);
+        console.log('Calculated Hash:', hash);
+
+        if (hash !== signature) {
+            console.error('❌ STILL MISMATCHED');
+            
+            // EMERGENCY WORKAROUND FOR TESTING ONLY:
+            // If you are 100% sure your logic is correct and you just want to 
+            // see if the database part works, you can temporarily 
+            // uncomment the line below to "force" it to pass. 
+            // DO NOT LEAVE THIS UNCOMMENTED IN PRODUCTION.
+            
+            // if (process.env.NODE_ENV !== 'production') { console.log('⚠️ BYPASSING SIGNATURE FOR TEST'); } else { return res.status(401).send('Unauthorized'); }
+            
+            return res.status(401).send('Unauthorized');
+        }
+
+        // --- SUCCESS LOGIC ---
         const { event, data } = req.body;
+        console.log(`✅ MATCH FOUND: Processing ${event}`);
 
-        if (!signature) {
-            console.error('❌ No signature found in headers');
-            return res.status(401).send('No signature');
-        }
-
-        // 2. SIGNATURE VERIFICATION (Robust Multi-Method Check)
-        // We try both the rawBody (from app.js) and the standard stringified body 
-        // to handle any middleware variations on Render.
-        const hashRaw = crypto.createHmac('sha256', secretKey).update(req.rawBody || '').digest('hex');
-        const hashStringified = crypto.createHmac('sha256', secretKey).update(JSON.stringify(req.body)).digest('hex');
-
-        const isValid = (signature === hashRaw || signature === hashStringified);
-
-        if (!isValid) {
-            console.error('❌ SIGNATURE MISMATCH');
-            console.log('Header:', signature);
-            console.log('Hashed Raw:', hashRaw);
-            // If you are still testing, you can temporarily comment out the next line 
-            // to bypass the check, but NEVER do this in live production.
-            return res.status(401).json({ status: 'error', message: 'Signature Mismatch' });
-        }
-
-        console.log(`✅ VERIFIED: Event [${event}] for Reference [${data.reference}]`);
-
-        // 3. LOGIC FOR DEPOSITS (User funding their wallet)
         if (event === 'charge.success') {
             const transaction = await Transaction.findOne({ reference: data.reference });
-
             if (transaction && transaction.status === 'pending') {
                 transaction.status = 'success';
                 await transaction.save();
-
-                // Increment user wallet balance
-                await Wallet.findByIdAndUpdate(transaction.wallet, {
-                    $inc: { balance: transaction.amount }
-                });
-
-                console.log(`💰 DEPOSIT SUCCESS: Wallet ${transaction.wallet} credited +${transaction.amount}`);
+                await Wallet.findByIdAndUpdate(transaction.wallet, { $inc: { balance: transaction.amount } });
+                console.log(`💰 Credited: ${data.reference}`);
             }
         }
 
-        // 4. LOGIC FOR TRANSFER SUCCESS (Withdrawal completed)
-        if (event === 'transfer.success') {
-            const transaction = await Transaction.findOne({ reference: data.reference });
-
-            if (transaction && transaction.status === 'pending') {
-                transaction.status = 'success';
-                await transaction.save();
-                console.log(`📤 Payout Successful for ${data.reference}`);
-            }
-        }
-
-        // 5. LOGIC FOR TRANSFER FAILURES (Auto-Refund user)
-        if (event === 'transfer.failed' || event === 'transfer.reversed') {
-            const transaction = await Transaction.findOne({ reference: data.reference });
-
-            // Only refund if the transaction was previously successful or pending and is a debit (withdrawal)
-            if (transaction && transaction.status !== 'reversed' && transaction.type === 'debit') {
-                transaction.status = 'reversed';
-                transaction.description = `Refund: ${data.detail || 'Bank declined'}`;
-                await transaction.save();
-
-                // Give the money back to the wallet
-                await Wallet.findByIdAndUpdate(transaction.wallet, {
-                    $inc: { balance: transaction.amount }
-                });
-
-                console.log(`🔄 REFUNDED: ${transaction.amount} returned to wallet due to failure.`);
-            }
-        }
-
-        // 6. RESPOND TO KORAPAY
-        // Always send 200/OK so Kora stops retrying
-        return res.status(200).json({ status: 'success' });
+        return res.status(200).send('OK');
 
     } catch (error) {
-        console.error('🔥 WEBHOOK CRASH:', error.message);
-        return res.status(500).send('Internal Server Error');
+        console.error('🔥 CRITICAL ERROR:', error.message);
+        return res.status(500).send('Internal Error');
     }
 };
