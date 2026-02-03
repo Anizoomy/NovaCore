@@ -10,14 +10,28 @@ exports.korapayWebhook = async (req, res) => {
         // I use HMAC SHA256 hashing to compare the signature in the header 
         // with a hash of the raw request body using our Secret Key.
         const signature = req.headers['x-korapay-signature'];
+        
+        const secretKey = process.env.KORAPAY_SECRET_KEY ? process.env.KORAPAY_SECRET_KEY.trim() : '';
+
         const payload = req.rawBody || JSON.stringify(req.body);
-        const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
+
+        if (!payload) {
+            console.error('RAW BODY MISSING: Ensure app.use(express.json({verify:...})) is in app.js');
+            return res.status(400).send('Raw body missing');
+        }
+
+        const hash = crypto.createHmac('sha256', secretKey)
             .update(payload) 
             .digest('hex');
 
         // If the hashes don't match, someone might be trying to fake a payment
         if (hash !== signature) {
-            console.error('Signature Mismatch');
+            console.error('SIGNATURE MISMATCH');
+            console.log('Received Header:', signature);
+            console.log('Calculated Hash:', hash);
+            console.log('Payload Length:', payload.length);
+            console.log('Secret Key Length:', secretKey.length);
+
             return res.status(401).json({ message: 'Invalid Signature' });
         }
 
