@@ -134,61 +134,71 @@ const Transaction = require('../models/transactionModel');
 const Wallet = require('../models/walletModel');
 
 exports.korapayWebhook = async (req, res) => {
-    console.log('--- 🔔 KORAPAY WEBHOOK DEBUG 🔔 ---');
-
+    console.log('Korapay Webhook received:', req.body);
     try {
+        // 1. Verify Hash
         const signature = req.headers['x-korapay-signature'];
-        const secretKey = (process.env.KORAPAY_SECRET_KEY || '').trim();
-        const rawPayload = req.rawBody || '';
-
-        // DEBUG LOGS (Safe for console)
-        console.log('1. Key Stats:', {
-            length: secretKey.length,
-            prefix: secretKey.substring(0, 7), // Should be sk_test or sk_live
-            suffix: secretKey.substring(secretKey.length - 4)
-        });
-
-        // Calculate Hash
-        const hash = crypto.createHmac('sha256', secretKey)
-            .update(rawPayload)
-            .digest('hex');
-
-        console.log('2. Signature Comparison:');
-        console.log('Received Header:', signature);
-        console.log('Calculated Hash:', hash);
+        const dataToHash = JSON.stringify(req.body.data);
+        const hash = crypto.createHmac('sha256', process.env.KORAPAY_SECRET_KEY)
+            .update(dataToHash).digest('hex');
 
         if (hash !== signature) {
-            console.error('❌ STILL MISMATCHED');
-            
-            // EMERGENCY WORKAROUND FOR TESTING ONLY:
-            // If you are 100% sure your logic is correct and you just want to 
-            // see if the database part works, you can temporarily 
-            // uncomment the line below to "force" it to pass. 
-            // DO NOT LEAVE THIS UNCOMMENTED IN PRODUCTION.
-            
-            // if (process.env.NODE_ENV !== 'production') { console.log('⚠️ BYPASSING SIGNATURE FOR TEST'); } else { return res.status(401).send('Unauthorized'); }
-            
-            return res.status(401).send('Unauthorized');
+            console.error('Invalid Korapay webhook signature');
+            return res.status(401).json({ message: 'Unauthorized' });
         }
 
-        // --- SUCCESS LOGIC ---
         const { event, data } = req.body;
-        console.log(`✅ MATCH FOUND: Processing ${event}`);
 
-        if (event === 'charge.success') {
-            const transaction = await Transaction.findOne({ reference: data.reference });
-            if (transaction && transaction.status === 'pending') {
+        // --- HANDLE DEPOSITS (Already working) ---
+        if (event === 'charge.success' && data.status === 'success') {
+            const reference = data.reference;
+            const transaction = await Transaction.findOne({ reference, status: 'pending' });
+
+            if (transaction) {
                 transaction.status = 'success';
                 await transaction.save();
-                await Wallet.findByIdAndUpdate(transaction.wallet, { $inc: { balance: transaction.amount } });
-                console.log(`💰 Credited: ${data.reference}`);
+
+                await Wallet.findByIdAndUpdate(transaction.wallet, {
+                    $inc: { balance: transaction.amount }
+                });
+                console.log(`[DEPOSIT] Wallet credited for ref: ${reference}`);
             }
         }
 
-        return res.status(200).send('OK');
+        // --- HANDLE TRANSFER SUCCESS (New) ---
+        if (event === 'transfer.success') {
+            const transaction = await Transaction.findOne({ reference: data.reference, status: 'pending' });
+
+            if (transaction) {
+                transaction.status = 'success';
+                await transaction.save();
+                console.log(`[TRANSFER] Marked as success for ref: ${data.reference}`);
+            }
+        }
+
+        // --- HANDLE TRANSFER FAILURE (Refund logic) ---
+        if (event === 'transfer.failed') {
+            const transaction = await Transaction.findOne({ reference: data.reference });
+
+            // Refund if it was a debit and hasn't been reversed yet
+            if (transaction && transaction.status !== 'reversed' && transaction.type === 'debit') {
+                transaction.status = 'reversed';
+                transaction.description = `Transfer failed: ${data.detail || 'Money returned to wallet'}`;
+                await transaction.save();
+
+                // Put the money back!
+                await Wallet.findByIdAndUpdate(transaction.wallet, {
+                    $inc: { balance: transaction.amount }
+                });
+
+                console.log(`[TRANSFER] Failed, wallet refunded for ref: ${data.reference}`);
+            }
+        }
+
+        res.status(200).send('Webhook Received');
 
     } catch (error) {
-        console.error('🔥 CRITICAL ERROR:', error.message);
-        return res.status(500).send('Internal Error');
+        console.error('Webhook Error:', error);
+        res.status(500).send('Internal Server Error');
     }
 };
