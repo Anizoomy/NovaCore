@@ -20,7 +20,7 @@ redisClient.on('connect', () => console.log('Redis Connection Established'));
         // Check if the client is NOT already open to avoid double-connecting
         if (!redisClient.isOpen) {
             await redisClient.connect();
-            console.log('Successfully handshaked with Upstash Redis');
+            console.log('Successfully connected with Upstash Redis');
         }
     } catch (error) {
         console.error('Failed to connect to Redis on startup:', error.message);

@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const Transaction = require('../models/transactionModel');
 const Wallet = require('../models/walletModel');
+const redisClient = require('../utils/redis');
 
 exports.korapayWebhook = async (req, res) => {
     console.log('Korapay Webhook received:', req.body);
@@ -17,6 +18,22 @@ exports.korapayWebhook = async (req, res) => {
         }
 
         const { event, data } = req.body;
+        const reference = data.reference;
+
+        // redis idempotency check
+        // NX(not exist) redis save the key only if it the first time it has seenbut if it's a duplicate it says no and return null
+        // EX(expire) redis will automatically delete thr record after 24 hours which is 86400 seconds
+        const isDuplicate = await redisClient.set(
+            `processed_webhook:${reference}`,
+            'locked',
+            { NX: true, EX: 86400 }
+        );
+
+        // if 'isDuplicate' is null, it means this reference has already been processed
+        if (!isDuplicate) {
+            console.log(`Request with reference ${reference} has already been processed. Skipping.`);
+            return res.status(200).send('Webhook Received');
+        }
 
         // handle deposit
         if (event === 'charge.success' && data.status === 'success') {
@@ -68,6 +85,10 @@ exports.korapayWebhook = async (req, res) => {
 
     } catch (error) {
         console.error('Webhook Error:', error);
+
+        if (req.body.data && req.body.data.reference) {
+            await redisClient.del(`processed_webhook:${req.body.data.reference}`);
+        }
         res.status(500).send('Internal Server Error');
     }
 };
