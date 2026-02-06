@@ -18,7 +18,7 @@ exports.korapayWebhook = async (req, res) => {
 
         const { event, data } = req.body;
 
-        // --- HANDLE DEPOSITS (Already working) ---
+        // handle deposit
         if (event === 'charge.success' && data.status === 'success') {
             const reference = data.reference;
             const transaction = await Transaction.findOne({ reference, status: 'pending' });
@@ -30,11 +30,11 @@ exports.korapayWebhook = async (req, res) => {
                 await Wallet.findByIdAndUpdate(transaction.wallet, {
                     $inc: { balance: transaction.amount }
                 });
-                console.log(`[DEPOSIT] Wallet credited for ref: ${reference}`);
+                console.log(`Wallet credited for ref: ${reference}`);
             }
         }
 
-        // --- HANDLE TRANSFER SUCCESS (New) ---
+        // handle transfer success
         if (event === 'transfer.success') {
             const transaction = await Transaction.findOne({ reference: data.reference, status: 'pending' });
 
@@ -45,7 +45,7 @@ exports.korapayWebhook = async (req, res) => {
             }
         }
 
-        // --- HANDLE TRANSFER FAILURE (Refund logic) ---
+        // handle transfer failure and refund 
         if (event === 'transfer.failed') {
             const transaction = await Transaction.findOne({ reference: data.reference });
 
@@ -55,12 +55,12 @@ exports.korapayWebhook = async (req, res) => {
                 transaction.description = `Transfer failed: ${data.detail || 'Money returned to wallet'}`;
                 await transaction.save();
 
-                // Put the money back!
+                // Put the money back
                 await Wallet.findByIdAndUpdate(transaction.wallet, {
                     $inc: { balance: transaction.amount }
                 });
 
-                console.log(`[TRANSFER] Failed, wallet refunded for ref: ${data.reference}`);
+                console.log(`Transfer failed, wallet refunded for ref: ${data.reference}`);
             }
         }
 
