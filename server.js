@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./utils/redis');
 const { default: mongoose } = require('mongoose');
 const app = require('./app');
 const PORT = process.env.PORT || 3000;
