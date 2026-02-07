@@ -11,6 +11,7 @@ const transferRouter = require('./routes/transferRouter');
 
 
 const app = express();
+app.set('trust proxy', 1); // trust first proxy for rate limiting behind proxies/load balancers
 app.use(express.json({
     verify: (req, res, buf) => {
         req.rawBody = buf.toString();

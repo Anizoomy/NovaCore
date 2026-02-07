@@ -1,5 +1,6 @@
 const express = require('express');
 const { register, verifyOtp, resendOtp, logIn } = require('../controllers/authController');
+const { loginLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
@@ -42,7 +43,7 @@ const router = express.Router();
  *       400:
  *         description: User already exists or invalid input
  */
-router.post('/register', register);
+router.post('/register', loginLimiter, register);
 
 /**
  * @swagger
@@ -128,6 +129,6 @@ router.post('/resend-otp', resendOtp);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', logIn);
+router.post('/login', loginLimiter, logIn);
 
 module.exports = router; 
