@@ -136,10 +136,12 @@ router.post('/login', loginLimiter, logIn);
  * @swagger
  * /get-profile:
  *   get:
- *     summary: Get logged-in user profile
- *     tags: [Auth]
+ *     tags:
+ *       - Auth
+ *     summary: Get authenticated user profile
+ *     description: Retrieves the profile details of the currently authenticated user
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: User profile retrieved successfully
@@ -148,15 +150,21 @@ router.post('/login', loginLimiter, logIn);
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 status:
  *                   type: string
- *                   example: 64fd2a9c3a8e9c00123abcd
- *                 name:
- *                   type: string
- *                   example: John Doe
- *                 email:
- *                   type: string
- *                   example: johndoe@gmail.com
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: 64f1c2a9e8b1a2
+ *                     name:
+ *                       type: string
+ *                       example: John Doe
+ *                     email:
+ *                       type: string
+ *                       example: john@example.com
  *       401:
  *         description: Unauthorized
  */
@@ -164,12 +172,14 @@ router.get('/get-profile', secure, getProfile);
 
 /**
  * @swagger
- * /updateProfile:
+ * /update-profile:
  *   put:
- *     summary: Update logged-in user profile
- *     tags: [Auth]
+ *     tags:
+ *       - Auth
+ *     summary: Update authenticated user profile
+ *     description: Updates the profile details of the currently authenticated user
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -182,10 +192,21 @@ router.get('/get-profile', secure, getProfile);
  *                 example: John Doe
  *               email:
  *                 type: string
- *                 example: johndoe@gmail.com
+ *                 example: john@example.com
  *     responses:
  *       200:
- *         description: Profile updated successfully
+ *         description: User profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
  *       400:
  *         description: Invalid input
  *       401:
