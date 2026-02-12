@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { sendMail } = require('../middleware/email');
 const { registerOTP } = require('../utils/sendEmail');
+const redisClient = require('../utils/redis');
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
