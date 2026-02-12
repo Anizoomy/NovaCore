@@ -134,7 +134,7 @@ router.post('/login', loginLimiter, logIn);
 
 /**
  * @swagger
- * /profile:
+ * /api/v1/profile:
  *   get:
  *     summary: Get logged-in user profile
  *     tags: [Auth]
@@ -164,7 +164,7 @@ router.get('/profile', secure, getProfile);
 
 /**
  * @swagger
- * /profile:
+ * /api/v1/profile:
  *   put:
  *     summary: Update logged-in user profile
  *     tags: [Auth]
