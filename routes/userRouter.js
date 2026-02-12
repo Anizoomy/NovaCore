@@ -1,5 +1,6 @@
 const express = require('express');
-const { register, verifyOtp, resendOtp, logIn } = require('../controllers/authController');
+const { register, verifyOtp, resendOtp, logIn, getProfile, updateProfile } = require('../controllers/authController');
+const { secure } = require('../middleware/authMiddleware');
 const { loginLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
@@ -130,5 +131,66 @@ router.post('/resend-otp', resendOtp);
  *         description: Invalid credentials
  */
 router.post('/login', loginLimiter, logIn);
+
+/**
+ * @swagger
+ * /profile:
+ *   get:
+ *     summary: Get logged-in user profile
+ *     tags: [User]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   example: 64fd2a9c3a8e9c00123abcd
+ *                 name:
+ *                   type: string
+ *                   example: John Doe
+ *                 email:
+ *                   type: string
+ *                   example: johndoe@gmail.com
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/profile', secure, getProfile);
+
+/**
+ * @swagger
+ * /profile:
+ *   put:
+ *     summary: Update logged-in user profile
+ *     tags: [User]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: John Doe
+ *               email:
+ *                 type: string
+ *                 example: johndoe@gmail.com
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ */
+router.put('/profile', secure, updateProfile);
 
 module.exports = router; 

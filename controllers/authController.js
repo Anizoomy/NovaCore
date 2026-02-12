@@ -49,7 +49,7 @@ exports.register = async (req, res) => {
             user: user._id,
             balance: 0
         });
-        
+
         const firstName = (user?.name || "").trim().split(" ")[0];
 
         const subject = `Hello ${firstName}, kindly verify your email`;
@@ -205,38 +205,70 @@ exports.logIn = async (req, res) => {
     }
 };
 
-// exports.getProfile = async (req, res) => {
-//     res.json(req.user);
-// };
+exports.getProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const cacheKey = `user_profile:${userId}`;
 
-// exports.updateProfile = async (req, res) => {
-//     try {
-//         const {name} = req.body;
+        // Check redis first
+        const cachedUser = await redisClient.get(cacheKey);
 
-//         const user = await User.findById(req.user._id);
+        if (cachedUser) {
+            return res.status(200).json({
+                message: 'User profile retrieved from cache',
+                user: JSON.parse(cachedUser)
+            });
+        }
 
-//         if (!user) {
-//             return res.status(404).json({
-//                 message: 'User not found'
-//             });
-//         }
+        // if not in redis cache fetch from db
+        const user = await User.findById(userId).select('-password');
 
-//         req.user.name = name || req.user.name;
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found'
+            });
+        }
 
-//         if (req.file) {
-//             req.user.profilePicture = req.file.filename;
-//         }
+        // Store in redis cache for 1 hour (3600 seconds)
+        await redisClient.set(cacheKey, JSON.stringify(user), { EX: 3600 });
 
-//         await req.user.save();
+        res.status(200).json({
+            message: 'User profile retrieved successfully',
+            user
+        });
 
-//         res.json({
-//             message: 'Profile updated',
-//             user: req.user
-//         })
-//     } catch (error) {
-//         res.status(500).json({
-//             message: 'Server error',
-//             error: error.message
-//         });
-//     }
-// };
+    } catch (error) {
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
+
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { name, email} = req.body;
+
+        const user = await User.findAndUpdate(
+            userId,
+            {name, email},
+            {new: true, runValidators: true}
+        ).select('-password');
+
+        // delete the old cache
+        await redisClient.del(`user_profile:${userId}`);
+
+        res.status(200).json({
+            message: 'Profile updated successfully',
+            user
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            message: ' Server error',
+            error: error.message
+        });
+    }
+};
