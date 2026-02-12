@@ -137,7 +137,7 @@ router.post('/login', loginLimiter, logIn);
  * /profile:
  *   get:
  *     summary: Get logged-in user profile
- *     tags: [User]
+ *     tags: [Auth]
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -167,7 +167,7 @@ router.get('/profile', secure, getProfile);
  * /profile:
  *   put:
  *     summary: Update logged-in user profile
- *     tags: [User]
+ *     tags: [Auth]
  *     security:
  *       - BearerAuth: []
  *     requestBody:
