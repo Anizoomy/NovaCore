@@ -134,7 +134,7 @@ router.post('/login', loginLimiter, logIn);
 
 /**
  * @swagger
- * /api/v1/profile:
+ * /get-profile:
  *   get:
  *     summary: Get logged-in user profile
  *     tags: [Auth]
@@ -160,11 +160,11 @@ router.post('/login', loginLimiter, logIn);
  *       401:
  *         description: Unauthorized
  */
-router.get('/profile', secure, getProfile);
+router.get('/get-profile', secure, getProfile);
 
 /**
  * @swagger
- * /api/v1/profile:
+ * /updateProfile:
  *   put:
  *     summary: Update logged-in user profile
  *     tags: [Auth]
@@ -191,6 +191,6 @@ router.get('/profile', secure, getProfile);
  *       401:
  *         description: Unauthorized
  */
-router.put('/profile', secure, updateProfile);
+router.put('/update-profile', secure, updateProfile);
 
 module.exports = router; 
